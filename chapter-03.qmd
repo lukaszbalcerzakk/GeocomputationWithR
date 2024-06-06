@@ -1,0 +1,98 @@
+---
+title: "Attibute data operations"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+<https://r.geocompx.org/attr>
+
+```{r}
+library(sf)      # vector data package introduced in Chapter 2
+library(terra)   # raster data package introduced in Chapter 2
+library(tidyverse)   # tidyverse package for data frame manipulation
+library(spData)  # spatial data package introduced in Chapter 2
+```
+
+## Vector attribute manipulation
+
+### Basic operations
+```{r}
+class(world)
+dim(world)
+
+```
+
+Remove geometry
+```{r}
+world_df = st_drop_geometry(world)
+class(world_df)
+dim(world_df)
+```
+
+Vector attribute subsetting preserves the geometry column
+
+* base R subsetting works
+  + [], subset()
+* tidyverse subsetting works
+  + select(), filter()
+  
+But **pull()** or **$** operator return single attribute, droping geometry data
+
+
+### Vector atribute aggregation
+
+Tidyverse group_by() and summarize() keep geometry column (and apparently performs sf_union??). 
+```{r}
+
+world_agg4  = world |> 
+  group_by(continent) |> 
+  summarize(Pop = sum(pop, na.rm = TRUE), Area = sum(area_km2), N = n())
+
+class(world_agg4)
+world_agg4
+```
+
+```{r}
+world_agg5 = world |> 
+  st_drop_geometry() |>                      # drop the geometry for speed
+  select(pop, continent, area_km2) |> # subset the columns of interest  
+  group_by(continent) |>                     # group by continent and summarize:
+  summarize(Pop = sum(pop, na.rm = TRUE), Area = sum(area_km2), N = n()) |>
+  mutate(Density = round(Pop / Area)) |>     # calculate population density
+  slice_max(Pop, n = 3) |>                   # keep only the top 3
+  arrange(desc(N))                           # arrange in order of n. countries
+
+world_agg5
+```
+
+### Vector attirbute joins
+```{r}
+world_coffee = left_join(world, coffee_data)
+#> Joining with `by = join_by(name_long)`
+class(world_coffee)
+#> [1] "sf"         "tbl_df"     "tbl"        "data.frame"
+```
+
+```{r}
+plot(world_coffee[,c("coffee_production_2016","coffee_production_2017")])
+```
+
+The direction of join **matters**.
+
+* join(sf, df) --> simple feature object
+* join(df, sf) --> regular data.frame object
+
+```{r}
+coffee_world = left_join(coffee_data, world)
+#> Joining with `by = join_by(name_long)`
+class(coffee_world)
+#> [1] "tbl_df"     "tbl"        "data.frame"
+```
+
+Creating, modifing, dropping attributes preserves geometric column on SF object.
+
+## Raster objects manipulation
+
+
+
