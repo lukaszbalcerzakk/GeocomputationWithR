@@ -126,7 +126,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="vector-attribute-manipulation" class="level2">
 <h2 class="anchored" data-anchor-id="vector-attribute-manipulation">Vector attribute manipulation</h2>
-<p>Basic operations</p>
+<section id="basic-operations" class="level3">
+<h3 class="anchored" data-anchor-id="basic-operations">Basic operations</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(world)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -162,8 +163,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>But <strong>pull()</strong> or <strong>$</strong> operator return single attribute, droping geometry data</p>
 </section>
-<section id="vector-atribute-aggregation" class="level2">
-<h2 class="anchored" data-anchor-id="vector-atribute-aggregation">Vector atribute aggregation</h2>
+<section id="vector-atribute-aggregation" class="level3">
+<h3 class="anchored" data-anchor-id="vector-atribute-aggregation">Vector atribute aggregation</h3>
 <p>Tidyverse group_by() and summarize() keep geometry column (and apparently performs sf_union??).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>world_agg4  <span class="ot">=</span> world <span class="sc">|&gt;</span> </span>
@@ -215,8 +216,8 @@ Geodetic CRS:  WGS 84
 </div>
 </div>
 </section>
-<section id="vector-attirbute-joins" class="level2">
-<h2 class="anchored" data-anchor-id="vector-attirbute-joins">Vector attirbute joins</h2>
+<section id="vector-attirbute-joins" class="level3">
+<h3 class="anchored" data-anchor-id="vector-attirbute-joins">Vector attirbute joins</h3>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>world_coffee <span class="ot">=</span> <span class="fu">left_join</span>(world, coffee_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -255,6 +256,458 @@ Geodetic CRS:  WGS 84
 <pre><code>[1] "tbl_df"     "tbl"        "data.frame"</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] "tbl_df"     "tbl"        "data.frame"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Creating, modifing, dropping attributes preserves geometric column on SF object.</p>
+</section>
+</section>
+<section id="raster-objects-manipulation" class="level2">
+<h2 class="anchored" data-anchor-id="raster-objects-manipulation">Raster objects manipulation</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>elev <span class="ot">=</span> <span class="fu">rast</span>(<span class="at">nrows=</span><span class="dv">6</span>, <span class="at">ncols=</span><span class="dv">6</span>,</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">xmin=</span> <span class="sc">-</span><span class="fl">1.5</span>, <span class="at">xmax=</span><span class="fl">1.5</span>, <span class="at">ymin=</span><span class="sc">-</span><span class="fl">1.5</span>, <span class="at">ymax=</span><span class="fl">1.5</span>,</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">vals =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">36</span>)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>grain_order <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"clay"</span>,<span class="st">"silt"</span>,<span class="st">"sand"</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>grain_char <span class="ot">=</span> <span class="fu">sample</span>(grain_order,<span class="dv">36</span>,<span class="at">replace=</span>T)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>grain_fact <span class="ot">=</span> <span class="fu">factor</span>(grain_char,<span class="at">levels=</span>grain_order)</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>grain <span class="ot">=</span> <span class="fu">rast</span>(<span class="at">nrows=</span><span class="dv">6</span>,<span class="at">ncols=</span><span class="dv">6</span>,</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">xmin=</span><span class="sc">-</span><span class="fl">1.5</span>,<span class="at">xmax=</span><span class="fl">1.5</span>,<span class="at">ymin=</span><span class="sc">-</span><span class="fl">1.5</span>,<span class="at">ymax=</span><span class="fl">1.5</span>,</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>             <span class="at">vals=</span>grain_fact)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S4 class 'SpatRaster' [package "terra"]</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cats</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+  value label
+1     1  clay
+2     2  silt
+3     3  sand</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>grain2<span class="ot">=</span>grain</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">levels</span>(grain2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[[1]]
+  value label
+1     1  clay
+2     2  silt
+3     3  sand</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">levels</span>(grain2)<span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">value =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>), <span class="at">wetness =</span> <span class="fu">c</span>(<span class="st">"wet"</span>, <span class="st">"moist"</span>, <span class="st">"dry"</span>))</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-9-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(grain2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: [plot] unknown categories in raster values</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-9-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Raster Subsetting</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># top left pixel</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="co"># row-column index</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>elev[<span class="dv">1</span>,<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1
+1     1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># cell ID</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>elev[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1
+1     1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>two_layers <span class="ot">=</span> <span class="fu">c</span>(grain, elev)</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(two_layers)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>two_layers[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1 lyr.1
+1  clay     1</code></pre>
+</div>
+</div>
+<p>Get all values</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>elev[]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      lyr.1
+ [1,]     1
+ [2,]     2
+ [3,]     3
+ [4,]     4
+ [5,]     5
+ [6,]     6
+ [7,]     7
+ [8,]     8
+ [9,]     9
+[10,]    10
+[11,]    11
+[12,]    12
+[13,]    13
+[14,]    14
+[15,]    15
+[16,]    16
+[17,]    17
+[18,]    18
+[19,]    19
+[20,]    20
+[21,]    21
+[22,]    22
+[23,]    23
+[24,]    24
+[25,]    25
+[26,]    26
+[27,]    27
+[28,]    28
+[29,]    29
+[30,]    30
+[31,]    31
+[32,]    32
+[33,]    33
+[34,]    34
+[35,]    35
+[36,]    36</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">values</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>      lyr.1
+ [1,]     1
+ [2,]     2
+ [3,]     3
+ [4,]     4
+ [5,]     5
+ [6,]     6
+ [7,]     7
+ [8,]     8
+ [9,]     9
+[10,]    10
+[11,]    11
+[12,]    12
+[13,]    13
+[14,]    14
+[15,]    15
+[16,]    16
+[17,]    17
+[18,]    18
+[19,]    19
+[20,]    20
+[21,]    21
+[22,]    22
+[23,]    23
+[24,]    24
+[25,]    25
+[26,]    26
+[27,]    27
+[28,]    28
+[29,]    29
+[30,]    30
+[31,]    31
+[32,]    32
+[33,]    33
+[34,]    34
+[35,]    35
+[36,]    36</code></pre>
+</div>
+</div>
+<p>Set values</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>elev[<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1
+1     1
+2     2
+3    13
+4    14</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>elev[<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>)] <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="summarizing-raster-objects" class="level3">
+<h3 class="anchored" data-anchor-id="summarizing-raster-objects">Summarizing raster objects</h3>
+<p>Think about rasters as if they are just vectors of numeric or factor data type.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     lyr.1      
+ Min.   : 0.00  
+ 1st Qu.: 7.75  
+ Median :18.50  
+ Mean   :17.67  
+ 3rd Qu.:27.25  
+ Max.   :36.00  </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1   
+ clay:16  
+ silt: 8  
+ sand:12  </code></pre>
+</div>
+</div>
+<p>Global() function</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">global</span>(elev, sd)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            sd
+lyr.1 11.46423</code></pre>
+</div>
+</div>
+<p>Freq() function</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">freq</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  layer value count
+1     1  clay    16
+2     1  silt     8
+3     1  sand    12</code></pre>
+</div>
+</div>
+<p>Other fns</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">density</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-16-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="exercises" class="level2">
+<h2 class="anchored" data-anchor-id="exercises">Exercises</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(us_states)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(us_states_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(us_states)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Classes 'sf' and 'data.frame':  49 obs. of  7 variables:
+ $ GEOID       : chr  "01" "04" "08" "09" ...
+ $ NAME        : chr  "Alabama" "Arizona" "Colorado" "Connecticut" ...
+ $ REGION      : Factor w/ 4 levels "Norteast","Midwest",..: 3 4 4 1 3 3 4 2 2 3 ...
+ $ AREA        : Units: [km^2] num  133709 295281 269573 12977 151052 ...
+ $ total_pop_10: num  4712651 6246816 4887061 3545837 18511620 ...
+ $ total_pop_15: num  4830620 6641928 5278906 3593222 19645772 ...
+ $ geometry    :sfc_MULTIPOLYGON of length 49; first list element: List of 1
+  ..$ :List of 1
+  .. ..$ : num [1:51, 1:2] -88.2 -88.2 -87.4 -86.9 -85.6 ...
+  ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
+ - attr(*, "sf_column")= chr "geometry"
+ - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA
+  ..- attr(*, "names")= chr [1:6] "GEOID" "NAME" "REGION" "AREA" ...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>us_states_name <span class="ot">=</span> us_states <span class="sc">|&gt;</span> <span class="fu">select</span>(NAME)</span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(us_states_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "sf"         "data.frame"</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a>us_states <span class="sc">|&gt;</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">starts_with</span>(<span class="st">"total"</span>))<span class="sc">|&gt;</span></span>
+<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>us_states <span class="sc">|&gt;</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">area2=</span>units<span class="sc">::</span><span class="fu">set_units</span>(<span class="fu">st_area</span>(geometry),km<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">as.numeric</span>(area2)<span class="sc">&lt;</span><span class="dv">250000</span> <span class="sc">&amp;</span> total_pop_15<span class="sc">&gt;</span><span class="dv">5000000</span>) <span class="sc">|&gt;</span></span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-19-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(us_states)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    GEOID               NAME                REGION        AREA         
+ Length:49          Length:49          Norteast: 9   Min.   :   178.2  
+ Class :character   Class :character   Midwest :12   1st Qu.: 93648.4  
+ Mode  :character   Mode  :character   South   :17   Median :144954.4  
+                                       West    :11   Mean   :159327.3  
+                                                     3rd Qu.:213037.1  
+                                                     Max.   :687714.3  
+  total_pop_10       total_pop_15               geometry 
+ Min.   :  545579   Min.   :  579679   MULTIPOLYGON :49  
+ 1st Qu.: 1840802   1st Qu.: 1869365   epsg:4269    : 0  
+ Median : 4429940   Median : 4625253   +proj=long...: 0  
+ Mean   : 6162051   Mean   : 6415823                     
+ 3rd Qu.: 6561297   3rd Qu.: 6985464                     
+ Max.   :36637290   Max.   :38421464                     </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>us_states <span class="sc">|&gt;</span></span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>()<span class="sc">|&gt;</span></span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total_pop =</span> <span class="fu">sum</span>(total_pop_15))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  total_pop
+1 314375347</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>us_states <span class="sc">|&gt;</span></span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_drop_geometry</span>()<span class="sc">|&gt;</span></span>
+<span id="cb79-3"><a href="#cb79-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(REGION)<span class="sc">|&gt;</span></span>
+<span id="cb79-4"><a href="#cb79-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">dist_c =</span> <span class="fu">n_distinct</span>(NAME))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 2
+  REGION   dist_c
+  &lt;fct&gt;     &lt;int&gt;
+1 Norteast      9
+2 Midwest      12
+3 South        17
+4 West         11</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(us_states_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>tibble [51 × 5] (S3: tbl_df/tbl/data.frame)
+ $ state           : chr [1:51] "Alabama" "Alaska" "Arizona" "Arkansas" ...
+ $ median_income_10: num [1:51] 21746 29509 26412 20881 27207 ...
+ $ median_income_15: num [1:51] 22890 31455 26156 22205 27035 ...
+ $ poverty_level_10: num [1:51] 786544 64245 933113 502684 4919945 ...
+ $ poverty_level_15: num [1:51] 887260 72957 1180690 553644 6135142 ...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">setdiff</span>(us_states_df<span class="sc">$</span>state,us_states<span class="sc">$</span>NAME)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Alaska" "Hawaii"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a>us_states_stats <span class="ot">=</span> us_states <span class="sc">|&gt;</span> <span class="fu">left_join</span>(us_states_df,<span class="fu">join_by</span>(NAME<span class="sc">==</span>state))</span>
+<span id="cb85-2"><a href="#cb85-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(us_states_stats)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Classes 'sf' and 'data.frame':  49 obs. of  11 variables:
+ $ GEOID           : chr  "01" "04" "08" "09" ...
+ $ NAME            : chr  "Alabama" "Arizona" "Colorado" "Connecticut" ...
+ $ REGION          : Factor w/ 4 levels "Norteast","Midwest",..: 3 4 4 1 3 3 4 2 2 3 ...
+ $ AREA            : Units: [km^2] num  133709 295281 269573 12977 151052 ...
+ $ total_pop_10    : num  4712651 6246816 4887061 3545837 18511620 ...
+ $ total_pop_15    : num  4830620 6641928 5278906 3593222 19645772 ...
+ $ median_income_10: num  21746 26412 29365 32258 24812 ...
+ $ median_income_15: num  22890 26156 30752 33226 24654 ...
+ $ poverty_level_10: num  786544 933113 584184 314306 2502365 ...
+ $ poverty_level_15: num  887260 1180690 653969 366351 3180109 ...
+ $ geometry        :sfc_MULTIPOLYGON of length 49; first list element: List of 1
+  ..$ :List of 1
+  .. ..$ : num [1:51, 1:2] -88.2 -88.2 -87.4 -86.9 -85.6 ...
+  ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
+ - attr(*, "sf_column")= chr "geometry"
+ - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA
+  ..- attr(*, "names")= chr [1:10] "GEOID" "NAME" "REGION" "AREA" ...</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>us_states<span class="sc">|&gt;</span></span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">area2=</span><span class="fu">as.numeric</span>(units<span class="sc">::</span><span class="fu">set_units</span>(<span class="fu">st_area</span>(geometry),km<span class="sc">^</span><span class="dv">2</span>)),</span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">density10 =</span> (total_pop_10<span class="sc">/</span><span class="dv">1000</span>)<span class="sc">/</span>area2,</span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">density15 =</span> (total_pop_15<span class="sc">/</span><span class="dv">1000</span>)<span class="sc">/</span>area2,</span>
+<span id="cb87-5"><a href="#cb87-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">delta =</span> (density15<span class="sc">/</span>density10)<span class="sc">-</span><span class="dv">1</span>)<span class="sc">|&gt;</span></span>
+<span id="cb87-6"><a href="#cb87-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(delta)<span class="sc">|&gt;</span></span>
+<span id="cb87-7"><a href="#cb87-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb88"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb88-1"><a href="#cb88-1" aria-hidden="true" tabindex="-1"></a>us_states_stats <span class="sc">|&gt;</span></span>
+<span id="cb88-2"><a href="#cb88-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pow_pct10 =</span> poverty_level_10<span class="sc">/</span>total_pop_10,</span>
+<span id="cb88-3"><a href="#cb88-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">pow_pct15 =</span> poverty_level_15<span class="sc">/</span>total_pop_15,</span>
+<span id="cb88-4"><a href="#cb88-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">pow_delta =</span> (pow_pct15<span class="sc">/</span>pow_pct10)<span class="sc">-</span><span class="dv">1</span>)<span class="sc">|&gt;</span></span>
+<span id="cb88-5"><a href="#cb88-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(pow_delta)<span class="sc">|&gt;</span></span>
+<span id="cb88-6"><a href="#cb88-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">plot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">freq</span>(grain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  layer value count
+1     1  clay    16
+2     1  silt     8
+3     1  sand    12</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>my_rast <span class="ot">=</span> <span class="fu">rast</span>(<span class="at">nrows=</span><span class="dv">9</span>, <span class="at">ncols=</span><span class="dv">9</span>,</span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>            <span class="at">xmin=</span> <span class="sc">-</span><span class="fl">2.5</span>, <span class="at">xmax=</span><span class="dv">2</span>, <span class="at">ymin=</span><span class="sc">-</span><span class="fl">2.5</span>, <span class="at">ymax=</span><span class="dv">2</span>,</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>            <span class="at">vals =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">81</span>)</span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(my_rast)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="chapter-03_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>my_rast[<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">9</span>),<span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">9</span>)] </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  lyr.1
+1     1
+2     9
+3    73
+4    81</code></pre>
+</div>
 </div>
 </section>
 
