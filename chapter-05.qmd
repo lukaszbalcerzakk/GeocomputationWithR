@@ -1,0 +1,373 @@
+---
+title: "Geometry operations"
+format: 
+  html:
+    fig-width: 10
+editor_options: 
+  chunk_output_type: console
+---
+
+<https://r.geocompx.org/geometry-operations>
+
+```{r}
+library(sf)
+library(terra)
+library(tidyverse)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+```
+
+## Vector data
+
+### Simplification
+
+`st_simplify() simplifies lines by removing vertices.`
+```{r}
+#| column: page
+seine_simp = st_simplify(seine, dTolerance = 2000)  # 2000 m
+par(mfrow=c(1,2))
+plot(seine$geometry,main="Original")
+plot(seine_simp$geometry,main="st_simplify")
+
+plot(us_states$geometry,main="original")
+plot(st_simplify(us_states,dTolerance = 100000)[,"geometry"],main="st_simplify")
+```
+
+st_simplify looses *topology*.
+```{r}
+#| column: page
+# install.packages("rmapshaper")
+# proportion of points to retain (0-1; default 0.05)
+us_states_simp2 = rmapshaper::ms_simplify(us_states, keep = 0.01,
+                                          keep_shapes = TRUE)
+
+# install.packages("smoothr")
+us_states_simp3 = smoothr::smooth(us_states, method = "ksmooth", smoothness = 6)
+par(mfrow=c(1,2))
+plot(us_states_simp2$geometry,main="rmapshaper::ms_simplify")
+plot(us_states_simp3$geometry,main="smoothr::smooth")
+
+par(mfrow=c(1,1))
+```
+
+### Centroids
+There are many different ways to calculate a center of a space. The default is **geographic centroid** that represents a center of mass of a spatial object.
+
+`st_centroid()` calculates the geographic centroid.
+`st_point_on_surface()` returns a point **guaranteed** to be on the (multi)surface.
+
+```{r}
+#| column: page
+nz_centroid = st_centroid(nz)
+seine_centroid = st_centroid(seine)
+nz_pos = st_point_on_surface(nz)
+seine_pos = st_point_on_surface(seine)
+
+plot(st_geometry(nz))
+plot(st_geometry(nz_centroid),add=T,col="black",cex=2,lwd=2)
+plot(st_geometry(nz_pos),add=T,col="red",cex=2,lwd=2)
+
+plot(st_geometry(seine))
+plot(st_geometry(seine_centroid),add=T,col="black",cex=2,lwd=2)
+plot(st_geometry(seine_pos),add=T,col="red",cex=2,lwd=2)
+
+```
+
+### Buffers
+Buffers are polygons representing the area within a given distance of a geometric feature: regardless of whether the input is a point, line or polygon, the output is a polygon.
+
+```{r}
+#| column: page
+seine_buff_5km = st_buffer(seine,dist=5000)
+seine_buff_50km = st_buffer(seine,dist=50000)
+
+
+plot(seine_buff_5km,main="5 km buffer")
+plot(seine$geometry,add=T)
+plot(seine_buff_50km,main="50 km buffer")
+plot(seine$geometry,add=T)
+```
+
+
+### Affine transformations
+Affine transformations include, among others, shifting (translation), scaling and rotation. Additionally, it is possible to use any combination of these. Affine transformations are an essential part of geocomputation. For example, shifting is needed for labels placement, scaling is used in non-contiguous area cartograms, and many affine transformations are applied when reprojecting or improving the geometry that was created based on a distorted or wrongly projected map.
+
+#### Shifting
+```{r}
+nz_sfc = st_geometry(nz)
+nz_shift = nz_sfc + c(0, 100000) # shifts all y-coordinates by 100,000 meters to the north, but leaves the x-coordinates untouched
+
+plot(nz_sfc,main="shift")
+plot(nz_shift,add=T,col="red")
+
+```
+#### Scaling
+
+* globally - scales all coordinates in relation to the origin of coordinates, keeps the topological relations intact
+* locally - treats geometries independently, requires a point around which geometries are going to be scale e.g. centroids 
+
+```{r}
+nz_centroid_sfc = st_centroid(nz_sfc)
+nz_scale = (nz_sfc - nz_centroid_sfc) * 0.5 + nz_centroid_sfc
+
+plot(nz_sfc,main="local scaling")
+plot(nz_scale,add=T,col="red")
+
+```
+#### Rotation
+Rotation of two-dimensional coordinates requires a rotation matrix. It rotates points in a clockwise direction.
+
+```{r}
+rotation = function(a){
+  r = a * pi / 180 #degrees to radians
+  matrix(c(cos(r), sin(r), -sin(r), cos(r)), nrow = 2, ncol = 2)
+} 
+nz_rotate = (nz_sfc - nz_centroid_sfc) * rotation(30) + nz_centroid_sfc
+
+plot(nz_sfc,main="rotate")
+plot(nz_rotate,add=T,col="red")
+```
+
+### Replacing geometry
+`sf_set_geometry()`
+```{r}
+nz_scale_sf = st_set_geometry(nz, nz_scale)
+```
+
+### Cliping 
+`st_intersection()` and other logical operators
+Cliping is a form of spatial subsetting that involves changes to the geometry of at least some of the affected features.
+Clipping only applies to features more complext than points: lines, polygons etc.
+
+```{r}
+b=st_sfc(st_point(c(0,1)),st_point(c(1,1)))
+b= st_buffer(b,dist=1)
+plot(b,border="grey")
+text(x=c(-0.5,1.5),y=1,labels=c("x","y"),cex=2)
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| layout-nrow: 3
+#| column: page
+x=b[1]
+y=b[2]
+
+plot(b,border="grey")
+plot(x,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="x",cex=2)
+
+x_minus_y = st_difference(x,y)
+plot(b,border="grey")
+plot(x_minus_y,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="st_difference(x,y)",cex=2)
+
+y_minus_x = st_difference(y,x)
+plot(b,border="grey")
+plot(y_minus_x,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="st_difference(y,x)",cex=2)
+
+x_or_y = st_union(x,y)
+plot(b,border="grey")
+plot(x_or_y,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="st_union()",cex=2)
+
+x_and_y = st_intersection(x,y)
+plot(b,border="grey")
+plot(x_and_y,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="st_intersection()",cex=2)
+
+x_nor_y = st_sym_difference(x,y)
+plot(b,border="grey")
+plot(x_nor_y,col="grey80",add=T,border="grey")
+text(x=0.5,y=1,labels="st_sym_difference()",cex=2)
+
+
+```
+
+Subsetting and clipping
+
+```{r}
+bb = st_bbox(st_union(x,y))
+box=st_as_sfc(bb)
+set.seed(2024)
+p = st_sample(x=box, size=10)
+
+plot(b,border="grey")
+plot(p,add=T)
+
+p_xy1 = p[x_and_y]
+
+plot(box,border="grey",lty=2)
+plot(b,border="grey",add=T)
+text(x=c(-0.5,1.5),y=1,labels=c("x","y"),cex=2)
+plot(p,add=T,cex=2)
+plot(p_xy1,add=T,cex=3,col="red")
+```
+
+3 ways of performing the same thing (subsetting)
+```{r}
+# way #1
+p_xy1 = p[x_and_y]
+# way #2
+p_xy2 = st_intersection(p, x_and_y)
+# way #3
+sel_p_xy = st_intersects(p, x, sparse = FALSE)[, 1] & 
+  st_intersects(p, y, sparse = FALSE)[, 1]
+p_xy3 = p[sel_p_xy]
+```
+
+### Geometry unions
+
+```{r}
+#| layout-nrow: 2
+#| column: page
+
+regions = us_states |>
+  group_by(REGION)|>
+  summarize(pop=sum(total_pop_15,na.rm=T))
+
+plot(us_states["total_pop_15"],main="States")
+plot(regions["pop"],main="Regions")
+
+```
+
+### Type transformation
+
+
+```{r}
+#| layout-ncol: 3
+multipoint = st_multipoint(
+  matrix(c(1,3,
+           5,1,
+           3,1),ncol=2))
+
+linestring = st_cast(multipoint,"LINESTRING")
+polyg = st_cast(multipoint,"POLYGON")
+
+walk(list(multipoint,linestring,polyg),\(x) plot(x,main=names(x)))
+
+```
+
+Importantly, st_cast() **behaves differently** when you try to **split** geometries.
+
+* on single simple feature geometry (sfg) objects - split returns **only the first element** of the parent object 
+* simple feature geometry column (sfc) and simple features (sf) objects - split **duplicates rows** and **adds all elements** of the parent object
+
+```{r}
+#| column: page
+#| layout-ncol: 2
+multilinestring_list = list(matrix(c(1, 4, 5, 3), ncol = 2), 
+                            matrix(c(4, 4, 4, 1), ncol = 2),
+                            matrix(c(2, 4, 2, 2), ncol = 2))
+multilinestring = st_multilinestring(multilinestring_list)
+multilinestring_sf = st_sf(geom = st_sfc(multilinestring))
+multilinestring_sf
+
+linestring_sf2 = st_cast(multilinestring_sf,"LINESTRING")
+linestring_sf2
+
+plot(multilinestring,main="1 x multilinestring",lwd=2)
+plot(linestring_sf2,main="5 x linestring",col=c("blue","orange","green"),lwd=2)
+
+```
+
+Sometimes it's better to have separate features - you can perform calculations on each part individually
+
+```{r}
+
+linestring_sf2$name = c("Riddle Rd", "Marshall Ave", "Foulke St")
+linestring_sf2$length = st_length(linestring_sf2)
+linestring_sf2
+
+```
+
+## Exercises
+
+```{r}
+#| layout-ncol: 2
+#| layout-nrow: 3
+#| column: page
+nzg = st_geometry(nz)
+
+dtol = 10^c(1,2,3,4,5)
+plot(nzg,main="original")
+
+walk(dtol,\(x) plot(st_simplify(nzg,dTolerance = x),main=paste0("dtolerance = ",as.character(x),"m")))
+
+
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| layout-nrow: 3
+#| column: page
+
+keep_par = c(1,5 * 10^(-1:-5))
+
+walk(keep_par,\(x) plot(rmapshaper::ms_simplify(nzg,keep=x),main=paste0("keep = ", as.character(x))))
+```
+
+```{r}
+canterbury = nz |> filter(Name=="Canterbury")
+
+canterbury_100km = st_buffer(canterbury,dist=100000)
+
+plot(nz$geom)
+plot(canterbury_100km,add=T,col="grey80")
+plot(canterbury,add=T,col="grey40")
+
+buf100 = st_difference(canterbury_100km$geom,canterbury$geom)
+heigh_buf=nz_height[buf100,]
+heigh_cant = nz_height[canterbury,]
+
+plot(nz$geom,border="grey")
+plot(canterbury_100km$geom,col="grey80")
+plot(canterbury,add=T,col="grey40")
+plot(heigh_buf,add=T,pch=4,col="yellow")
+plot(heigh_cant,add=T,pch=4,col="blue")
+```
+
+```{r}
+nz_cent = nz |>
+  st_union() |>
+  st_centroid()
+cant_cent = nz |> filter(Name=="Canterbury") |> st_centroid()
+
+dist_line = st_union(nz_cent,cant_cent) |> st_cast(to="LINESTRING")
+
+km = units::set_units(st_distance(nz_cent,cant_cent),"km")[1]
+
+plot(nz$geom,border="grey",main=paste0("distance ",as.character(round(km))," km"))
+plot(nz_cent,add=T,col="black")
+plot(cant_cent,add=T,col="black")
+plot(dist_line,add=T,col="blue")
+
+```
+
+```{r}
+us_g = st_geometry(us_states)
+us_scale = (us_g - st_centroid(us_g)) * 0.9 + st_centroid(us_g)
+plot(us_scale)
+
+
+us_scale = st_as_sf(us_scale)
+us_scale$name = us_states$NAME
+
+us_multi=us_scale |>
+  select(name)|>
+  st_cast(x,to="MULTILINESTRING") |>
+  mutate(border_length= st_length(x))
+
+plot(us_multi[,"border_length"])
+
+us_multi |>
+  st_drop_geometry()|>
+  slice_max(order_by = border_length,n=5)
+
+
+```
+
