@@ -1,0 +1,267 @@
+---
+title: "Reprojecting geographic data"
+format: 
+  html:
+    fig-width: 5
+    df-print: kable
+toc: true
+editor_options: 
+  chunk_output_type: console
+---
+
+<https://r.geocompx.org/reproj-geo-data>
+
+## Coordinate Reference System = CRS 
+*From previous chapter 2.*
+
+### Geographic CRS
+Surface of the Earth is represented either by spherical or ellipsoidal surface.
+
+* Spherical - sphere with one radius
+* Elipsoidal - elipsoid with equatorial radius and polar radius. Equatorial > Polar
+
+Location is identified by  longitude and latitude (angular distance from point 0)
+angular unit of measurment
+
+The datum - which elipsoid to use , and what is the precise relationship 
+between the coordinates and location on the earth surface.
+
+Geocentric datum (eg WGS84) - center of elipsoid is located in the Earth's' center of gravity
+Local datum - elipsoidal surface is shifted to align with the surface of particular location (but misaligned with most of other locations on the Earth surface)
+
+#### Projected CRS
+* Map projections, that are converting 3-dimensional geographic CRS models into X and Y values
+* Based on Cartesiazn coordinates, implicitly flat surface
+* linear unit of measurement (ie km)
+* The projection can be performed in many differnt ways, but always with deformation to one of these: area, direction, distance, shape
+* Projections are often named after the property they preserve i.e. equidistant projection preserves distance
+
+
+```{r}
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+```
+
+## CRS
+CRS has a format of **`AUTHORITY:CODE`** e.g. `EPSG:4326`. This format is future-proof and default in many packages.  
+EPSG stands for: *European Petroleum Survey Group* which published a standardized list o CRSs. 
+
+EPSG:4326 is the WGS84 CRS that is the basis of Global Positioning System.
+
+## Querying and setting CRS
+### Vector data
+
+CRS:
+
+* user input - CRS identifier, flexible
+* wkt - full WKT string with all relevant info about the CRS
+  
+```{r}
+vector_filepath = system.file("shapes/world.gpkg", package = "spData")
+new_vector = read_sf(vector_filepath)
+st_crs(new_vector)
+
+```
+
+Additional info from st_crs()
+```{r}
+st_crs(new_vector)$IsGeographic
+st_crs(new_vector)$units_gdal
+st_crs(new_vector)$srid
+st_crs(new_vector)$proj4string
+```
+
+```{r}
+new_vector = st_set_crs(new_vector,"EPSG:4326")
+st_crs(new_vector)
+```
+### Raster data
+
+```{r}
+raster_filepath = system.file("raster/srtm.tif", package = "spDataLarge")
+my_rast = rast(raster_filepath)
+cat(crs(my_rast)) 
+crs(my_rast) = "EPSG:26912" # set CRS
+```
+
+**`st_set_crs()` and `crs()` DO NOT ALTER COORDINATES values or geometries. They only set a metadata information about the CRS object.**
+
+```{r}
+london = data.frame(lon = -0.1, lat = 51.5) |> 
+  st_as_sf(coords = c("lon", "lat"))
+st_is_longlat(london)
+
+london_geo = st_set_crs(london, "EPSG:4326")
+st_is_longlat(london_geo)
+
+```
+
+## Geometry operations on projected and unprojected data
+![geometry operations behaviour](07-s2geos.png)
+```{r}
+
+london_buff_no_crs = st_buffer(london,dist=1)
+london_buff_s2 = st_buffer(london_geo,dist=10000)
+london_buff_s2_100_cells = st_buffer(london_geo,dist=1e5,max_cells=100)
+
+sf_use_s2(FALSE)
+london_buff_lonlat= st_buffer(london_geo,dist=1)
+
+sf_use_s2(TRUE)
+
+london_proj = data.frame(x = 530000, y = 180000) |> 
+  st_as_sf(coords = c("x", "y"), crs = "EPSG:27700") # British National Grid 
+
+st_crs(london_proj)
+st_is_longlat(london_proj)
+
+london_buff_projected = st_buffer(london_proj,dist=1e5)
+
+```
+
+![Buffers and CRS](crs-buf-1.png)
+
+## When to reproject ?
+
+* when you want to compare, combine objects with different CRS
+* when you want to use planar geometry operations rather than spherical geometry operations (or vice versa)
+
+```{r}
+# st_distance(london_geo,london_proj)
+# zmienna st_crs(x) == st_crs(y) nie ma wartości TRUE
+```
+
+## Which CRS to use?
+
+* When selecting **geographic CRSs**, the answer is often **WGS84**. It is used not only for web mapping, but also because GPS datasets and thousands of raster and vector datasets are provided in this CRS by default. WGS84 is the most common CRS in the world, so it is worth knowing its **EPSG code: 4326*. This ‘magic number’ can be used to convert objects with unusual projected CRSs into something that is widely understood.
+
+* What about when a **projected CRS** is required? In some cases, it is not something that we are free to decide: “often the choice of projection is made by a public mapping agency". This means that when working with local data sources, it is likely preferable to **work with the CRS in which the data was provided**, to ensure compatibility, even if the official CRS is not the most accurate. 
+  + The example of London was easy to answer because (a) the **British National Grid** (with its associated EPSG code 27700) is well known and (b) the original dataset (london) already had that CRS.
+  + A commonly used default is **Universal Transverse Mercator (UTM)**, a set of CRSs that divides the Earth into 60 longitudinal wedges and 20 latitudinal segments. Almost every place on Earth has a UTM code, such as “60H” which refers to northern New Zealand where R was invented. UTM EPSG codes run sequentially from 32601 to 32660 for northern hemisphere locations and from 32701 to 32760 for southern hemisphere locations.
+
+```{r}
+lonlat2UTM = function(lonlat) {
+  utm = (floor((lonlat[1]+180)/6)%%60)+1
+  if (lonlat[2]>0) {
+    utm + 32600
+  } else {
+    utm + 32700
+  }
+}
+
+st_coordinates(london)
+lonlat2UTM(st_coordinates(london))
+
+```
+
+The transverse Mercator projection used by UTM CRSs is conformal but **distorts areas and distances** with increasing severity with distance from the center of the UTM zone. Documentation from the GIS software Manifold therefore suggests restricting the longitudinal extent of projects using UTM zones to 6 degrees from the central meridian (source: manifold.net). **Therefore, we recommend using UTM only when your focus is on preserving angles for relatively small area!**
+
+** Tools that suggest appropriate CRS for specific location**:
+
+* <https://jjimenezshaw.github.io/crs-explorer/> 
+* crsuggest R package 
+
+CRSs are either:
+
+* equal-area,
+* equidistant, 
+* conformal (with shapes remaining unchanged),
+* or some combination of compromises of those.
+
+When deciding on a custom CRS, we recommend the following:
+
+* A **Lambert azimuthal equal-area (LAEA)** projection for a custom local projection (set latitude and longitude of origin to the center of the study area), which is an equal-area projection at all locations but distorts shapes beyond thousands of kilometers
+* **Azimuthal equidistant (AEQD)** projections for a specifically accurate straight-line distance between a point and the center point of the local projection
+* **Lambert conformal conic (LCC)** projections for regions covering thousands of kilometers, with the cone set to keep distance and area properties reasonable between the secant lines
+* **Stereographic (STERE)** projections for polar regions, but taking care not to rely on area and distance calculations thousands of kilometers from the center
+
+
+## Reprojecting vector geometries
+
+```{r}
+st_crs(london_geo)$input
+st_crs(london_proj)$input
+
+london2=st_transform(london_geo,"EPSG:27700")
+
+st_distance(london_proj, london2)
+multi_london=st_union(london_proj,london2)
+plot(multi_london)
+```
+
+```{r}
+crs_lnd = st_crs(cycle_hire_osm)
+str(crs_lnd)
+
+```
+
+The `wkt` element of the CRS object is the ultimate source of truth.
+
+```{r}
+
+cycle_hire_osm_projected = st_transform(cycle_hire_osm,"EPSG:27700")
+st_crs(cycle_hire_osm_projected)
+```
+
+## Reprojecting raster geometries
+
+ Rasters are composed of rectangular cells of the same size (expressed by map units, such as degrees or meters), so it is usually impracticable to transform coordinates of pixels separately. Thus, raster reprojection involves creating a new raster object, often with a different number of columns and rows than the original. The attributes must subsequently be re-estimated, allowing the new pixels to be ‘filled’ with appropriate values.
+
+1. vector reprojection of the raster extent to another CRS
+2. computation of new pixel values through resampling
+
+
+## Custom map projections
+
+* take exsiting definition of CRS `st_crs()`
+* modify some its elements 
+* use it for reprojecting `st_transform()`
+```{r}
+zion = read_sf(system.file("vector/zion.gpkg", package = "spDataLarge"))
+st_crs(zion)$input
+plot(zion$geom)
+
+zion_centr = st_centroid(zion)
+zion_centr_wgs84 = st_transform(zion_centr,"EPSG:4326")
+st_as_text(st_geometry(zion_centr_wgs84))
+
+
+```
+
+```{r}
+
+my_wkt = 'PROJCS["Custom_AEQD",
+ GEOGCS["GCS_WGS_1984",
+  DATUM["WGS_1984",
+   SPHEROID["WGS_1984",6378137.0,298.257223563]],
+  PRIMEM["Greenwich",0.0],
+  UNIT["Degree",0.0174532925199433]],
+ PROJECTION["Azimuthal_Equidistant"],
+ PARAMETER["Central_Meridian",-113.0263],
+ PARAMETER["Latitude_Of_Origin",37.29818],
+ UNIT["Meter",1.0]]'
+
+zion_aeqd = st_transform(zion,my_wkt)
+```
+
+## Exercises
+
+```{r}
+#| layout-ncol: 3
+#| column: page
+nz_wgs = st_transform(nz,"EPSG:4326")
+
+crs1 = st_crs(nz)
+crs2 = st_crs(nz_wgs)
+
+plot(nz$geom,main="projected crs")
+plot(nz_wgs$geom,main="geographic crs")
+
+nz_wgs2= st_set_crs(nz_wgs,NA) 
+
+plot(nz_wgs2$geom,main="no crs")
+```
+

@@ -3,6 +3,7 @@ title: "Geometry operations"
 format: 
   html:
     fig-width: 10
+toc: true
 editor_options: 
   chunk_output_type: console
 ---

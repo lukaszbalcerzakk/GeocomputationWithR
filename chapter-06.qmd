@@ -1,0 +1,293 @@
+---
+title: "Raster-vector interactions"
+format: 
+  html:
+    fig-width: 5
+    df-print: kable
+toc: true
+editor_options: 
+  chunk_output_type: console
+
+---
+
+<https://r.geocompx.org/raster-vector>
+
+
+```{r}
+library(sf)
+library(terra)
+library(tidyverse)
+```
+## Raster cropping and masking
+```{r}
+srtm = rast(system.file("raster/srtm.tif", package = "spDataLarge"))
+zion = read_sf(system.file("vector/zion.gpkg", package = "spDataLarge"))
+zion = st_transform(zion, st_crs(srtm))  # the CRS of vector and raster have to be the same 
+
+plot(srtm, main="Raster and vector")
+plot(zion$geom,add=T,border="black",lwd=2)
+```
+
+* crop() - reduce the rectangular extent (bounding box) of the raster object
+* mask() - sets the raster values outside of the vector object to NA 
+* mask(,inverse=T) - sets the raster values inside of the vector object to NA 
+
+```{r}
+#| layout-ncol: 3
+#| column: page
+
+srtm_cropped = crop(srtm,zion)
+srtm_masked = mask(srtm,zion)
+srtm_inv_masked = mask(srtm,zion,inverse=T)
+plot(srtm_cropped,main="crop()")
+plot(zion$geom,add=T,border="black",lwd=2)
+plot(srtm_masked,main="mask()")
+plot(zion$geom,add=T,border="black",lwd=2)
+plot(srtm_inv_masked,main="mask(,inverse=T)")
+plot(zion$geom,add=T,border="black",lwd=2)
+
+
+```
+
+
+## Raster extraction
+Raster extraction is the process of identifying and returning the values associated with a ‘target’ raster at specific locations, based on a (typically vector) geographic ‘selector’ object.
+`terra:extract()`
+
+Extract value of raster cell at specific **points**.
+
+```{r}
+data("zion_points",package="spDataLarge")
+elevation=terra::extract(srtm,zion_points)
+zion_points=cbind(zion_points,elevation)
+plot(srtm)
+plot(zion$geom,add=T)
+plot(zion_points$geometry,add=T,pch=16)
+head(zion_points)
+```
+Extract value of raster cell along a **line**.
+```{r}
+#| layout-ncol: 2
+#| column: page
+zion_transect = cbind(c(-113.2, -112.9), c(37.45, 37.2)) |>
+  st_linestring() |> 
+  st_sfc(crs = crs(srtm)) |>
+  st_sf(geometry = _)
+zion_transect$id = 1:nrow(zion_transect)
+
+
+library(lwgeom)
+zion_transect = st_segmentize(zion_transect,dfMaxLength=250)
+zion_transect = st_cast(zion_transect,"POINT")
+
+zion_transect = zion_transect |>
+  group_by(id) |>
+  mutate(dist=st_distance(geometry)[,1])
+  
+zion_elev = terra::extract(srtm,zion_transect)
+zion_transect = cbind(zion_transect,zion_elev)
+
+plot(srtm)
+plot(zion$geom,add=T)
+plot(zion_transect$geometry,add=T)
+plot(zion_transect$dist,zion_transect$srtm,type="l")
+```
+Extract value of raster cell along a **polygon**.
+USeful summary statistics per polygon - conituous example
+```{r}
+#| layout-ncol: 2
+#| column: page
+zion_srtm_values = terra::extract(srtm,zion)
+zion_srtm_values |>
+  group_by(ID)|>
+  summarise(
+    min=min(srtm),
+    mean=mean(srtm),
+    max=max(srtm)
+    )
+plot(srtm,main="continuous data")
+plot(zion$geom,add=T)
+
+```
+Categorical example
+```{r}
+#| layout-ncol: 2
+#| column: page
+nlcd = rast(system.file("raster/nlcd.tif", package = "spDataLarge"))
+zion2 = st_transform(zion, st_crs(nlcd))
+zion_nlcd = terra::extract(nlcd, zion2)
+zion_nlcd |> 
+  group_by(ID, levels) |>
+  count()
+
+plot(nlcd,main="categorical data")
+plot(zion2$geom,add=T)
+```
+
+## Rasterization
+Rasterization is the **conversion of vector objects into their representation in raster objects**. Usually, the output raster is then used for quantitative analysis (e.g., analysis of terrain) or modeling.
+Furthermore, the process of rasterization can help simplify datasets because the resulting values all have the same spatial resolution: **rasterization can be seen as a special type of geographic data aggregation**.
+`terra::rasterize(
+x, # vector object to be rasterized
+y  # a ‘template raster’ object defining the extent, resolution and CRS of the output
+)`
+```{r}
+cycle_hire_osm = spData::cycle_hire_osm
+cycle_hire_osm_projected = st_transform(cycle_hire_osm,"EPSG:27700")
+raster_template = rast(ext(cycle_hire_osm_projected),
+                       resolution=1000,
+                       crs=crs(cycle_hire_osm_projected))
+
+
+plot(cycle_hire_osm_projected[,"capacity"],
+     main="vector points")
+
+```
+
+```{r}
+#| layout-ncol: 3
+#| column: page
+
+# presence/absence
+ch_raster1 = rasterize(cycle_hire_osm_projected,raster_template)
+table(values(ch_raster1),useNA = "ifany")
+
+# count
+ch_raster2 = rasterize(cycle_hire_osm_projected,
+                       raster_template,
+                       fun="length")
+table(values(ch_raster2),useNA = "ifany")
+
+# attibute summary
+ch_raster3 = rasterize(cycle_hire_osm_projected,
+                       raster_template,
+                       field="capacity",
+                       fun="sum",
+                       na.rm=T
+                       )
+table(values(ch_raster3),useNA="ifany")
+```
+
+```{r}
+#| layout-ncol: 3
+#| column: page
+
+plot(ch_raster1,main="presence/absence")
+plot(ch_raster2,main="count")
+plot(ch_raster3,main="aggregated attribute")
+```
+
+
+### California polygon example
+
+```{r}
+#| layout-ncol: 2
+#| column: page
+
+library(spData)
+california = us_states |> filter(NAME=="California")
+california_borders=st_cast(california,"MULTILINESTRING")
+raster_template2 = rast(ext(california),
+                        resolution=0.5,
+                        crs=st_crs(california)$wkt)
+
+california_raster1= rasterize(california_borders,raster_template2,
+                              touches=T)
+california_raster2= rasterize(california,raster_template2,
+                              touches=F)
+
+plot(california_raster1,main="line rasterization, touches=TRUE")
+plot(california_borders$geometry,add=T)
+
+plot(california_raster2,main="polygon rasterization, touches=FALSE",
+     sub="only raster cells that have centroids inside the selector polygon")
+plot(california_borders$geometry,add=T)
+```
+
+
+## Exercises
+```{r}
+#| layout-ncol: 2
+#| column: page
+
+library(sf)
+library(terra)
+library(spData)
+zion_points_path = system.file("vector/zion_points.gpkg", package = "spDataLarge")
+zion_points = read_sf(zion_points_path)
+srtm = rast(system.file("raster/srtm.tif", package = "spDataLarge"))
+ch = st_combine(zion_points) |>
+  st_convex_hull() |> 
+  st_as_sf()
+
+plot(srtm)
+plot(zion_points,add=T)
+plot(ch,add=T)
+
+srtm_point = crop(srtm,zion_points) 
+srtm_ch=crop(srtm,ch)
+
+plot(srtm_point,main="cropped by points")
+plot(zion_points,add=T)
+plot(srtm_ch,main="cropped by polygon")
+plot(ch,add=T)
+
+srtm_point2 = mask(srtm,zion_points)
+srtm_ch2 = mask(srtm,ch)
+
+plot(srtm_point2,main="masked by points")
+plot(srtm_ch2,main="masked by polygon")
+
+
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| column: page
+zion_points_buffer = st_buffer(zion_points,dist=90)
+
+plot(srtm)
+plot(zion_points,add=T)
+plot(zion_points_buffer,add=T,col="red",border="red")
+
+values_points= terra::extract(srtm,zion_points)
+values_buffer= terra::extract(srtm,zion_points_buffer)
+
+values_buffer |>
+  group_by(ID)|>
+  summarise(elev = mean(srtm)) |>
+  left_join(values_points,by="ID")|>
+  ggplot() +
+  geom_point(aes(elev,srtm)) +
+  geom_abline(slope=1) +
+  labs(x="aggregated buffer",
+       y="point value")
+
+
+```
+
+```{r}
+#| layout-ncol: 2
+#| column: page
+
+hnz = nz_height |> filter(elevation>3100)
+plot(nz$geom)
+plot(hnz$geometry,add=T,col="blue")
+
+rtmpl = rast(ext(hnz),
+             resolution=3000,
+             crs=crs(hnz))
+hnz_r1= rasterize(hnz,rtmpl)
+plot(hnz_r1,main="presence/absence")
+
+hnz_r2 = rasterize(hnz,rtmpl,fun="length")
+plot(hnz_r2,main="number of peaks")
+
+hnz_r3 = rasterize(hnz,rtmpl,
+                   field="elevation",
+                   fun="max",
+                   na.rm=T)
+plot(hnz_r3,main="max elevation")
+```
+
